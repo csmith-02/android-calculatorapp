@@ -5,12 +5,14 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import com.example.calculatorapp.databinding.ActivityMainBinding
+import kotlin.math.pow
 
 class MainActivity : AppCompatActivity() {
 
-    private val buffer = mutableListOf<Float>()
+    private val buffer = mutableListOf<Double>()
     private var currentOperation: Operation? = null
 
+    private var decimal = false
     private var listenersDeactivated = false
     private var isNegative: Boolean = false
 
@@ -55,6 +57,7 @@ class MainActivity : AppCompatActivity() {
             isNegative = false
             listenersDeactivated = false
             getAllNumberListeners(binding)
+            decimal = false
         }
 
         binding.buttonEquals.setOnClickListener {
@@ -77,6 +80,7 @@ class MainActivity : AppCompatActivity() {
                     binding.textViewNumber.text = formatNumber(buffer[0].toString())
                 }
                 isNegative = false
+                decimal = false
             }
         }
 
@@ -107,6 +111,7 @@ class MainActivity : AppCompatActivity() {
                 binding.textViewOperation.text = "+"
                 currentOperation = Operation.ADD
                 isNegative = false
+                decimal = false
             }
         }
 
@@ -137,6 +142,7 @@ class MainActivity : AppCompatActivity() {
                 binding.textViewOperation.text = "-"
                 currentOperation = Operation.SUBTRACT
                 isNegative = false
+                decimal = false
             }
         }
 
@@ -168,6 +174,7 @@ class MainActivity : AppCompatActivity() {
                 binding.textViewOperation.text = "x"
                 currentOperation = Operation.MULTIPLY
                 isNegative = false
+                decimal = false
             }
         }
 
@@ -198,6 +205,7 @@ class MainActivity : AppCompatActivity() {
                 binding.textViewOperation.text = "/"
                 currentOperation = Operation.DIVIDE
                 isNegative = false
+                decimal = false
             }
         }
 
@@ -220,6 +228,16 @@ class MainActivity : AppCompatActivity() {
             } else {
                 buffer[1] = buffer[1] / 100
                 binding.textViewNumber.text = formatNumber(buffer[1].toString())
+            }
+        }
+
+        binding.buttonDecimal.setOnClickListener {
+            decimal = true
+            if (currentOperation != null) {
+                if (buffer.size == 1) {
+                    buffer.add(1, 0.0)
+                    binding.textViewNumber.text = "0.0"
+                }
             }
         }
     }
@@ -288,9 +306,17 @@ class MainActivity : AppCompatActivity() {
         return View.OnClickListener {
             if (buffer.isEmpty()) {
                 if (isNegative) {
-                    buffer.add(0, -1 * i.toFloat())
+                    if (decimal) {
+                        buffer.add(0, -1 * i.toDouble() / 10)
+                    } else {
+                        buffer.add(0, -1 * i.toDouble())
+                    }
                 } else {
-                    buffer.add(0, i.toFloat())
+                    if (decimal) {
+                        buffer.add(0, i.toDouble() / 10)
+                    } else {
+                        buffer.add(0, i.toDouble())
+                    }
                 }
                 binding.textViewNumber.text = buffer[0].toString()
             } else if (buffer.size == 1) {
@@ -300,17 +326,34 @@ class MainActivity : AppCompatActivity() {
                         return@OnClickListener
                     }
                     if (isNegative) {
-                        buffer.add(0, (buffer[0] * 10) - i)
+                        if (decimal) {
+                            buffer.add(0, buffer[0] - (i.toDouble() / (10.toDouble().pow(getNumOfPlaces(buffer[0].toString())).toInt())))
+                        } else {
+                            buffer.add(0, (buffer[0] * 10) - i)
+                        }
                     } else {
-                        buffer.add(0, (buffer[0] * 10) + i)
+                        if (decimal) {
+                            buffer.add(0, buffer[0] + (i.toDouble() / (10.toDouble().pow(getNumOfPlaces(buffer[0].toString())).toInt())))
+                        } else {
+                            buffer.add(0, (buffer[0] * 10) + i)
+                        }
                     }
                     buffer.removeAt(1)
                     binding.textViewNumber.text = buffer[0].toString()
                 } else {
                     if (isNegative) {
-                        buffer.add(1, -1 * i.toFloat())
+                        if (decimal) {
+                            buffer.add(1, -1 * i.toDouble() / 10)
+                        } else {
+                            buffer.add(1, -1 * i.toDouble())
+                        }
                     } else {
-                        buffer.add(1, i.toFloat())
+                        if (decimal) {
+                            buffer.add(1, i.toDouble() / 10)
+                        } else {
+                            buffer.add(1, i.toDouble())
+                        }
+                        buffer.add(1, i.toDouble())
                     }
                     binding.textViewNumber.text = buffer[1].toString()
                 }
@@ -319,14 +362,33 @@ class MainActivity : AppCompatActivity() {
                     removeNumberListener()
                     return@OnClickListener
                 }
-                buffer.add(1, (buffer[1] * 10) + i)
+                if (isNegative) {
+                    if (decimal) {
+                        buffer.add(1, buffer[1] - (i.toDouble() / (10.toDouble().pow(getNumOfPlaces(buffer[1].toString())).toInt())))
+                    } else {
+                        buffer.add(1, (buffer[1] * 10) - i)
+                    }
+                } else {
+                    if (decimal) {
+                        buffer.add(1, buffer[1] + (i.toDouble() / (10.toDouble().pow(getNumOfPlaces(buffer[1].toString())).toInt())))
+                    } else {
+                        buffer.add(1, (buffer[1] * 10) + i)
+                    }
+                }
                 buffer.removeAt(2)
                 binding.textViewNumber.text = buffer[1].toString()
+
             }
         }
     }
 
-
+    private fun getNumOfPlaces(input: String) : Int {
+        val decimals = input.split(".")[1]
+        if (decimals == "0") {
+            return 1
+        }
+        return decimals.length + 1
+    }
 
     private fun removeNumberListener() {
         for (button in numberButtons!!) {
